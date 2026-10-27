@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#3a6b3f">
+<title>Faber.io — Medieval Multiplayer</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23305c3a'/%3E%3Cpath d='M32 10l5 30 5 4-10 10-10-10 5-4z' fill='%23f0d27a'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div id="bg"></div>
+  <canvas id="game"></canvas>
+
+  <!-- ================= IN-GAME HUD ================= -->
+  <div id="hud" class="hidden">
+    <div class="hud-top-left">
+      <div class="minimap-box" id="minimapBox">
+        <canvas id="minimap" width="190" height="190"></canvas>
+        <div class="minimap-title"><span id="minimapLabel">Dünya 1</span><span class="mini-key">P</span></div>
+        <div class="minimap-event hidden" id="minimapEvent"></div>
+      </div>
+      <div id="chatLog" class="chat-log"></div>
+      <div id="chatRow" class="chat-row hidden">
+        <input id="chatInput" maxlength="160" autocomplete="off" spellcheck="false" data-i18n-ph="chat.placeholder">
+        <span class="chat-key">Enter</span>
+      </div>
+    </div>
+
+    <div class="hud-top-right">
+      <div class="gold-pill" title="Gold">
+        <canvas class="chip-icon" width="26" height="26" data-icon="gold"></canvas>
+        <span id="goldVal" class="gold-val">0</span>
+      </div>
+      <div class="event-pill" id="eventPill">
+        <span class="event-label" data-i18n="hud.event_next"></span>
+        <span id="eventTime" class="event-time">10:00</span>
+      </div>
+      <div class="world-pill">
+        <span class="world-dot"></span><span id="worldPill">Dünya 1</span>
+      </div>
+      <button id="gameMenuBtn" class="game-menu-btn" title="Menu">☰</button>
+    </div>
+
+    <div id="eventBanner" class="event-banner hidden">
+      <div class="event-banner-glow"></div>
+      <div class="event-banner-body">
+        <span class="event-crown">✦</span>
+        <div>
+          <strong data-i18n="hud.event_live"></strong>
+          <span id="eventBannerSub" data-i18n="hud.event_here"></span>
+        </div>
+        <span id="eventDist" class="event-dist"></span>
+      </div>
+    </div>
+
+    <div id="leftStack" class="left-stack">
+      <section id="buildPanel" class="panel side-panel hidden">
+        <header class="panel-head">
+          <h2 data-i18n="build.title"></h2>
+          <span class="key-cap">B</span>
+        </header>
+        <p class="panel-hint" data-i18n="build.hint"></p>
+        <div id="buildList" class="build-list"></div>
+      </section>
+
+      <section id="craftPanel" class="panel side-panel hidden">
+        <header class="panel-head">
+          <h2 data-i18n="craft.title"></h2>
+          <span class="key-cap">C</span>
+        </header>
+        <p class="panel-hint" data-i18n="craft.hint"></p>
+        <div id="craftList" class="craft-list"></div>
+      </section>
+
+      <section id="clanPanel" class="panel side-panel hidden">
+        <header class="panel-head">
+          <h2 data-i18n="clan.title"></h2>
+          <span class="key-cap">M</span>
+        </header>
+        <div id="clanBody" class="clan-body"></div>
+      </section>
+    </div>
+
+    <div id="bottomHud" class="bottom-hud">
+      <div id="prompt" class="prompt hidden"></div>
+      <div class="vitals">
+        <div class="hp-track"><div id="hpFill" class="hp-fill"></div><span id="hpText" class="hp-text">100 / 100</span></div>
+      </div>
+      <div id="hotbar" class="hotbar"></div>
+      <div class="res-row">
+        <span class="res-chip"><canvas class="chip-icon" width="22" height="22" data-icon="wood"></canvas><span id="woodVal">0</span></span>
+        <span class="res-chip"><canvas class="chip-icon" width="22" height="22" data-icon="stone"></canvas><span id="stoneVal">0</span></span>
+        <span class="res-chip gold-chip"><canvas class="chip-icon" width="22" height="22" data-icon="gold"></canvas><span id="goldHudVal">0</span></span>
+        <span class="hotbar-hint" data-i18n="hud.hotbar_hint"></span>
+      </div>
+    </div>
+
+    <div id="inventoryPanel" class="modal-wrap hidden">
+      <div class="panel modal-panel">
+        <header class="panel-head">
+          <h2 data-i18n="inv.title"></h2>
+          <span class="key-cap">E</span>
+          <button class="x-btn" data-close="inventoryPanel">✕</button>
+        </header>
+        <div class="inv-materials">
+          <span class="section-label" data-i18n="inv.materials"></span>
+          <div class="mat-row">
+            <span class="res-chip big"><canvas class="chip-icon" width="26" height="26" data-icon="wood"></canvas><span id="invWood">0</span></span>
+            <span class="res-chip big"><canvas class="chip-icon" width="26" height="26" data-icon="stone"></canvas><span id="invStone">0</span></span>
+            <span class="res-chip big gold-chip"><canvas class="chip-icon" width="26" height="26" data-icon="gold"></canvas><span id="invGold">0</span></span>
+          </div>
+        </div>
+        <div class="section-label" data-i18n="inv.equip"></div>
+        <div id="invEquip" class="inv-equip"></div>
+        <div class="section-label"><span data-i18n="inv.title"></span> · 20</div>
+        <div id="invGrid" class="slot-grid inv-grid"></div>
+        <p class="panel-hint" data-i18n="inv.hint"></p>
+        <div class="inv-footer">
+          <span class="mini-hint" data-i18n="inv.drop_hint"></span>
+          <span class="mini-hint gold-hint" data-i18n="inv.stash_hint"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="chestPanel" class="modal-wrap hidden">
+      <div class="panel modal-panel chest-modal">
+        <header class="panel-head">
+          <h2 id="chestTitle" data-i18n="chest.title"></h2>
+          <span class="key-cap">F</span>
+          <button class="x-btn" data-close="chestPanel">✕</button>
+        </header>
+        <p class="panel-hint" id="chestSafe" data-i18n="chest.safe"></p>
+        <div class="section-label"><span data-i18n="chest.player"></span></div>
+        <div id="chestGrid" class="slot-grid chest-grid"></div>
+        <div class="section-label" data-i18n="inv.title"></div>
+        <div id="chestInvGrid" class="slot-grid chest-inv-grid"></div>
+        <p class="panel-hint" data-i18n="chest.hint"></p>
+      </div>
+    </div>
+
+    <div id="mapOverlay" class="map-overlay hidden">
+      <div class="panel map-panel">
+        <header class="panel-head">
+          <h2 data-i18n="map.title"></h2>
+          <span class="key-cap">P</span>
+          <button class="x-btn" data-close="mapOverlay">✕</button>
+        </header>
+        <div class="bigmap-wrap"><canvas id="bigMap" width="760" height="760"></canvas></div>
+        <div class="map-legend">
+          <span><i class="dot you"></i><span data-i18n="map.you"></span></span>
+          <span><i class="dot event"></i><span data-i18n="map.event"></span></span>
+          <span><i class="dot clan"></i><span data-i18n="map.clan"></span></span>
+          <span class="map-hint" data-i18n="map.hint"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="deathOverlay" class="death-overlay hidden">
+      <div class="death-panel">
+        <div class="death-skull">☠</div>
+        <h1 data-i18n="death.title"></h1>
+        <p id="deathBy" class="death-by"></p>
+        <p class="death-lost" data-i18n="death.lost"></p>
+        <button id="btnRespawn" class="btn btn-gold" disabled><span data-i18n="death.respawn"></span> <span id="deathTimer"></span></button>
+      </div>
+    </div>
+
+    <div id="pauseOverlay" class="modal-screen hidden">
+      <div class="panel popup-panel">
+        <header class="panel-head"><h2 data-i18n="pause.title"></h2></header>
+        <div class="pause-actions">
+          <button id="btnResume" class="btn btn-gold" data-i18n="pause.resume"></button>
+          <button id="btnLeave" class="btn btn-danger" data-i18n="pause.leave"></button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="toasts" class="toasts"></div>
+
+  <div id="connectOverlay" class="modal-screen hidden">
+    <div class="connect-box">
+      <div class="spinner"></div>
+      <p id="connectText" data-i18n="misc.connecting"></p>
+    </div>
+  </div>
+
+  <!-- ================= MAIN MENU ================= -->
+  <div id="menu" class="menu">
+    <header class="menu-top">
+      <div class="brand-small">FABER<span>.IO</span></div>
+      <div class="menu-top-right">
+        <div id="langSwitch" class="lang-switch">
+          <button data-lang="tr">TR</button>
+          <button data-lang="en">EN</button>
+          <button data-lang="ru">RU</button>
+          <button data-lang="az">AZ</button>
+        </div>
+        <button id="soundBtn" class="round-btn" title="Sound">♪</button>
+      </div>
+    </header>
+
+    <div class="menu-main">
+      <section class="menu-hero">
+        <div class="crest">⚔</div>
+        <h1 class="logo">FABER<span>.IO</span></h1>
+        <p class="tagline" data-i18n="app.tagline"></p>
+        <div class="menu-buttons">
+          <button id="btnPlay" class="btn btn-gold btn-wide">
+            <span class="btn-orn">✦</span><span data-i18n="menu.play"></span>
+          </button>
+          <button id="btnLeaderboard" class="btn btn-wide" data-i18n="menu.leaderboard"></button>
+          <button id="btnHowto" class="btn btn-wide" data-i18n="menu.howto"></button>
+          <button id="btnSettings" class="btn btn-wide" data-i18n="menu.settings"></button>
+        </div>
+        <div class="menu-foot">
+          <span class="online-dot"></span><span id="menuOnline">—</span>
+        </div>
+      </section>
+
+      <aside class="profile-card panel">
+        <div class="profile-top">
+          <div id="pcAvatar" class="avatar">?</div>
+          <div class="profile-meta">
+            <div id="pcName" class="profile-name">—</div>
+            <div id="pcClan" class="profile-clan"></div>
+          </div>
+        </div>
+        <div class="profile-stats">
+          <div class="pstat"><canvas class="chip-icon" width="24" height="24" data-icon="gold"></canvas><div><b id="pcGold">0</b><span data-i18n="hud.gold"></span></div></div>
+          <div class="pstat"><span class="rank-badge">#</span><div><b id="pcRank">—</b><span data-i18n="lb.rank"></span></div></div>
+        </div>
+        <div class="profile-actions">
+          <button id="btnEditProfile" class="btn btn-small" data-i18n="menu.settings"></button>
+          <button id="btnSignOut" class="btn btn-small btn-ghost" data-i18n="menu.logout"></button>
+        </div>
+      </aside>
+    </div>
+
+    <div class="menu-bottom-bar">
+      <span>Faber.io · Medieval Multiplayer</span>
+      <span class="menu-controls">B Build · C Craft · M Clan · E Inventory · P Map</span>
+    </div>
+
+    <!-- auth -->
+    <div id="screenAuth" class="modal-screen hidden">
+      <div class="panel popup-panel auth-panel">
+        <button class="back-btn js-back">← <span data-i18n="misc.back"></span></button>
+        <header class="popup-head">
+          <h2 data-i18n="auth.title"></h2>
+          <p data-i18n="auth.sub"></p>
+        </header>
+        <div id="googleBlock" class="google-block">
+          <div id="googleBtn"></div>
+          <div class="or-divider"><span>—</span></div>
+        </div>
+        <div id="googleNote" class="mini-note hidden" data-i18n="auth.google_missing"></div>
+        <label class="field">
+          <span data-i18n="auth.nickname"></span>
+          <input id="authNick" type="text" maxlength="16" autocomplete="off" data-i18n-ph="auth.nick_ph">
+        </label>
+        <div class="field">
+          <span data-i18n="auth.gender"></span>
+          <div class="gender-toggle" id="authGender">
+            <button data-gender="male" class="active"><i class="g male">♂</i><span data-i18n="auth.male"></span></button>
+            <button data-gender="female"><i class="g female">♀</i><span data-i18n="auth.female"></span></button>
+          </div>
+        </div>
+        <div id="authError" class="form-error hidden"></div>
+        <button id="btnGuest" class="btn btn-gold btn-block" data-i18n="auth.guest_btn"></button>
+        <p class="mini-note center" data-i18n="auth.note"></p>
+      </div>
+    </div>
+
+    <!-- worlds -->
+    <div id="screenWorlds" class="modal-screen hidden">
+      <div class="panel popup-panel worlds-panel">
+        <button class="back-btn js-back">← <span data-i18n="misc.back"></span></button>
+        <header class="popup-head">
+          <h2 data-i18n="worlds.title"></h2>
+          <p data-i18n="worlds.sub"></p>
+        </header>
+        <div id="worldList" class="world-list"></div>
+        <button id="worldRefresh" class="btn btn-small">⟳ <span data-i18n="worlds.refresh"></span></button>
+      </div>
+    </div>
+
+    <!-- leaderboard -->
+    <div id="screenLeaderboard" class="modal-screen hidden">
+      <div class="panel popup-panel wide-panel">
+        <button class="back-btn js-back">← <span data-i18n="misc.back"></span></button>
+        <header class="popup-head">
+          <h2 data-i18n="lb.title"></h2>
+          <p data-i18n="lb.sub"></p>
+        </header>
+        <div class="table-wrap">
+          <table class="lb-table">
+            <thead><tr>
+              <th data-i18n="lb.rank"></th><th data-i18n="lb.player"></th><th data-i18n="lb.clan"></th><th data-i18n="lb.gold"></th>
+            </tr></thead>
+            <tbody id="lbBody"></tbody>
+          </table>
+          <p id="lbEmpty" class="mini-note center hidden" data-i18n="lb.empty"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- how to play -->
+    <div id="screenHowto" class="modal-screen hidden">
+      <div class="panel popup-panel wide-panel howto-panel">
+        <button class="back-btn js-back">← <span data-i18n="misc.back"></span></button>
+        <header class="popup-head">
+          <h2 data-i18n="how.title"></h2>
+          <p data-i18n="how.intro"></p>
+        </header>
+        <div class="howto-grid">
+          <article class="how-card"><span class="how-key">WASD</span><h3 data-i18n="how.move"></h3><p data-i18n="how.move_d"></p></article>
+          <article class="how-card"><span class="how-key">LMB</span><h3 data-i18n="how.attack"></h3><p data-i18n="how.attack_d"></p></article>
+          <article class="how-card"><span class="how-key">B</span><h3 data-i18n="how.build"></h3><p data-i18n="how.build_d"></p></article>
+          <article class="how-card"><span class="how-key">C</span><h3 data-i18n="how.craft"></h3><p data-i18n="how.craft_d"></p></article>
+          <article class="how-card"><span class="how-key">E</span><h3 data-i18n="how.inv"></h3><p data-i18n="how.inv_d"></p></article>
+          <article class="how-card"><span class="how-key">F</span><h3 data-i18n="how.farm"></h3><p data-i18n="how.farm_d"></p></article>
+          <article class="how-card"><span class="how-key">Q</span><h3 data-i18n="how.upgrade"></h3><p data-i18n="how.upgrade_d"></p></article>
+          <article class="how-card"><span class="how-key">F</span><h3 data-i18n="how.chest"></h3><p data-i18n="how.chest_d"></p></article>
+          <article class="how-card"><span class="how-key">M</span><h3 data-i18n="how.clan"></h3><p data-i18n="how.clan_d"></p></article>
+          <article class="how-card"><span class="how-key">Enter</span><h3 data-i18n="how.chat"></h3><p data-i18n="how.chat_d"></p></article>
+          <article class="how-card gold-card"><span class="how-key">✦</span><h3 data-i18n="how.event"></h3><p data-i18n="how.event_d"></p></article>
+          <article class="how-card gold-card"><span class="how-key">★</span><h3 data-i18n="how.gold"></h3><p data-i18n="how.gold_d"></p></article>
+          <article class="how-card"><span class="how-key">☠</span><h3 data-i18n="how.death"></h3><p data-i18n="how.death_d"></p></article>
+        </div>
+      </div>
+    </div>
+
+    <!-- settings -->
+    <div id="screenSettings" class="modal-screen hidden">
+      <div class="panel popup-panel wide-panel">
+        <button class="back-btn js-back">← <span data-i18n="misc.back"></span></button>
+        <header class="popup-head">
+          <h2 data-i18n="settings.title"></h2>
+        </header>
+        <div class="settings-grid">
+          <div class="settings-col">
+            <div class="section-label" data-i18n="settings.account"></div>
+            <div class="account-box">
+              <div id="setAvatar" class="avatar small">?</div>
+              <div>
+                <b id="setAccountName">—</b>
+                <div class="mini-note" id="setAccountGold">0 Gold</div>
+              </div>
+            </div>
+            <label class="field">
+              <span data-i18n="settings.nick"></span>
+              <input id="setNick" type="text" maxlength="16" autocomplete="off">
+            </label>
+            <div class="field">
+              <span data-i18n="settings.gender"></span>
+              <div class="gender-toggle" id="setGender">
+                <button data-gender="male" class="active"><i class="g male">♂</i><span data-i18n="auth.male"></span></button>
+                <button data-gender="female"><i class="g female">♀</i><span data-i18n="auth.female"></span></button>
+              </div>
+            </div>
+            <button id="btnSettingsSave" class="btn btn-gold btn-block" data-i18n="settings.save"></button>
+            <div id="setMsg" class="form-error hidden"></div>
+            <p class="mini-note" data-i18n="settings.guestnote"></p>
+            <button id="btnSetSignOut" class="btn btn-small btn-ghost" data-i18n="settings.logout"></button>
+          </div>
+          <div class="settings-col">
+            <label class="field">
+              <span data-i18n="settings.lang"></span>
+              <select id="setLang">
+                <option value="tr">Türkçe</option>
+                <option value="en">English</option>
+                <option value="ru">Русский</option>
+                <option value="az">Azərbaycanca</option>
+              </select>
+            </label>
+            <div class="field">
+              <span data-i18n="settings.sound"></span>
+              <label class="switch-row"><input id="setSound" type="checkbox" checked><span class="switch"></span><span id="setSoundLabel" data-i18n="settings.on"></span></label>
+            </div>
+            <div class="keylist">
+              <div><b>B</b><span data-i18n="how.build"></span></div>
+              <div><b>C</b><span data-i18n="how.craft"></span></div>
+              <div><b>M</b><span data-i18n="how.clan"></span></div>
+              <div><b>E</b><span data-i18n="inv.title"></span></div>
+              <div><b>P</b><span data-i18n="map.title"></span></div>
+              <div><b>F</b><span data-i18n="how.farm"></span></div>
+              <div><b>Q</b><span data-i18n="how.upgrade"></span></div>
+              <div><b>T</b><span data-i18n="inv.drop_hint"></span></div>
+              <div><b>Enter</b><span data-i18n="how.chat"></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="loadingOverlay" class="modal-screen hidden">
+      <div class="connect-box"><div class="spinner"></div><p data-i18n="misc.loading"></p></div>
+    </div>
+  </div>
+</div>
+
+<script src="/shared/defs.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
